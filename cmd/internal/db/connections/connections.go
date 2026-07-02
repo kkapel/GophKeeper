@@ -53,7 +53,10 @@ func (db *DB) CheckConnect() error {
 }
 
 func (db *DB) Close() error {
-	db.db.Close()
+	err := db.db.Close()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
