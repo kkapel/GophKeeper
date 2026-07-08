@@ -1,4 +1,4 @@
-module GophKeeper
+module github.com/kkapel/gophkeeper
 
 go 1.25.5
 

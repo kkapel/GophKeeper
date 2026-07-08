@@ -1,7 +1,7 @@
 package service
 
 import (
-	"GophKeeper/internal/db/connections"
+	"github.com/kkapel/gophkeeper/internal/db/connections"
 )
 
 type GophKeeper struct {

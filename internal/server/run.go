@@ -1,6 +1,6 @@
 package server
 
-import "GophKeeper/internal/db/connections"
+import "github.com/kkapel/gophkeeper/internal/db/connections"
 
 func Run() error {
 	var dbstr string = ""
