@@ -32,7 +32,7 @@ func Run() error {
 	logger.Log.Info("Starting gRPC server...")
 
 	// Инициализация БД
-	db, err := connections.InitDB(cfg.DataBaseURL, "./migrations")
+	db, err := connections.InitDB(cfg.DataBaseURL, "migrations")
 	if err != nil {
 		return err
 	}

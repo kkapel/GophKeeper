@@ -61,7 +61,7 @@ func (db *DB) Close() error {
 }
 
 func migrateDB(dbConnect string, migrationsPath string) error {
-	m, err := migrate.New(migrationsPath, dbConnect)
+	m, err := migrate.New("file://"+migrationsPath, dbConnect)
 	if err != nil {
 		return err
 	}
