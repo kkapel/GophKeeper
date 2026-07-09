@@ -1,7 +1,12 @@
 // Package main реализует сервер менеджера паролей GophKeeper.
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+
+	"github.com/kkapel/gophkeeper/internal/server"
+)
 
 // Дефолтные значения, присваивыемые переменным уровня пакета при их объявлении, могут быть перезаписаны на этапе линковки
 // с помощью флагов -ldflags
@@ -16,4 +21,8 @@ func main() {
 	// stdout для отображения информации о сборке при запуске приложения
 	fmt.Println("Build version:", buildVersion)
 	fmt.Println("Build date:", buildDate)
+
+	if err := server.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
