@@ -4,19 +4,27 @@ import (
 	"context"
 	"log/slog"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/docker/docker/libnetwork/config"
+	"github.com/kkapel/gophkeeper/internal/config"
 	"github.com/kkapel/gophkeeper/internal/db/connections"
 	"github.com/kkapel/gophkeeper/internal/logger"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 )
 
 func Run() error {
+	// Инициализация конфигурации
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return err
+	}
+
 	// Логгер
-	if err := logger.Initialize("INFO"); err != nil {
+	if err := logger.Initialize(cfg.LoggerLevel); err != nil {
 		return err
 	}
 
@@ -24,8 +32,7 @@ func Run() error {
 	logger.Log.Info("Starting gRPC server...")
 
 	// Инициализация БД
-	var dbstr string = ""
-	db, err := connections.InitDB(dbstr, "./migrations")
+	db, err := connections.InitDB(cfg.DataBaseURL, "./migrations")
 	if err != nil {
 		return err
 	}
@@ -40,11 +47,19 @@ func Run() error {
 	}
 
 	// Запуск gRPC-сервера
-	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(LoggingInterceptor), // добавляем логирование
-	)
+	srv, err := startGRPCServer(cfg)
+	if err != nil {
+		return err
+	}
 
-	grpcServer.Serve(nil) // Здесь нужно передать net.Listener, но для примера оставим nil
+	// ждём сигнал остановки (Ctrl+C / SIGTERM)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	<-ctx.Done()
+
+	logger.Log.Info("Shutting down gRPC server")
+
+	srv.GracefulStop() // Останавливаем сервер при завершении работы
 
 	return nil
 }
@@ -73,9 +88,9 @@ func LoggingInterceptor(
 }
 
 // Функция для запуска grpc-сервера
-func startGRPCServer(svc *service.ShortenerService, cfg *config.Config) (*grpc.Server, error) {
+func startGRPCServer(cfg *config.Config) (*grpc.Server, error) {
 	// 1. Открываем listener на нужном порту
-	listener, err := net.Listen("tcp", cfg.Grpc)
+	listener, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -83,22 +98,21 @@ func startGRPCServer(svc *service.ShortenerService, cfg *config.Config) (*grpc.S
 	// Загружаем TLS-сертификаты
 	// to do : сгенерировать сертификаты
 	// пути сделать настраиваемыми через конфиг
-	creds, err := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
-	if err != nil {
-		return nil, err
-	}
+	//creds, err := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
+	//if err != nil {
+	//	return nil, err
+	//	}
 
 	// 2. Создаём экземпляр gRPC-сервера
 	grpcServer := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(LoggingInterceptor), // добавляем логирование
-		grpc.Creds(creds), // добавляем TLS
+		//grpc.Creds(creds), // добавляем TLS
 	)
 
+	// To do: добавить регистрацию сервисов и запуск сервера в горутине
 	// 3. Создаём свой сервер с бизнес-логикой
-	srv := serverGRPC.NewShortenerGRPCServer(svc, cfg)
 
 	// 4. Регистрируем его в gRPC-сервере
-	pb.RegisterShortenerServiceServer(grpcServer, srv)
 
 	// 5. Запускаем в горутине, чтобы не блокировать main
 	go func() {
