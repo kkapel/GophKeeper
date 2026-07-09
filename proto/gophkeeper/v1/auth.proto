@@ -1,0 +1,31 @@
+edition = "2023";
+
+package gophkeeper.v1;
+
+import "google/protobuf/go_features.proto";
+
+option features.(pb.go).api_level = API_OPAQUE;
+option go_package = "github.com/kkapel/gophkeeper/gophkeeper/internal/proto/gophkeeper/v1;gophkeeperv1";
+
+// AuthService отвечает за регистрацию и вход пользователей.
+service AuthService {
+  // Register создаёт нового пользователя и возвращает пару токенов.
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  // Login аутентифицирует пользователя и возвращает пару токенов.
+  rpc Login(LoginRequest) returns (AuthResponse);
+}
+
+message RegisterRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  string login = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+}
