@@ -50,3 +50,4 @@ go run ./cmd/server
 | `GOPHKEEPER_DATABASE_URL` | да          | —            | DSN подключения к PostgreSQL |
 | `GOPHKEEPER_GRPC_ADDRESS` | нет         | `:8080`      | адрес gRPC-сервера           |
 | `GOPHKEEPER_LOGGER_LEVEL` | нет         | `info`       | уровень логирования          |
+| `GOPHKEEPER_JWT_SECRET`   | да          | —            | JWT-секрет                   |

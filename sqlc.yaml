@@ -1,0 +1,14 @@
+version: "2"
+sql:
+  - schema: "migrations"
+    queries: "internal/db/queries"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/db/sqlc"
+        emit_interface: true
+        emit_json_tags: false
+        overrides:
+          - db_type: "uuid"
+            go_type: "github.com/google/uuid.UUID"
