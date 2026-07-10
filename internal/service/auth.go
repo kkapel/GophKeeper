@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/kkapel/gophkeeper/internal/db/sqlc"
 	"golang.org/x/crypto/bcrypt"
 )
+
+var ErrLoginTaken = errors.New("login already taken")
 
 // UserStorage описывает операции с пользователями, нужные сервису аутентификации.
 type UserStorage interface {
