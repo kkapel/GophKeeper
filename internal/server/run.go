@@ -11,9 +11,14 @@ import (
 
 	"github.com/kkapel/gophkeeper/internal/config"
 	"github.com/kkapel/gophkeeper/internal/db/connections"
+	"github.com/kkapel/gophkeeper/internal/db/sqlc"
+	"github.com/kkapel/gophkeeper/internal/handlers"
 	"github.com/kkapel/gophkeeper/internal/logger"
+	"github.com/kkapel/gophkeeper/internal/service"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+
+	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
 )
 
 func Run() error {
@@ -36,18 +41,20 @@ func Run() error {
 	if err != nil {
 		return err
 	}
-
-	// Инициализация сервиса
-	//gophKeeper := &GophKeeper{
-	//	db: db,
-	//	}
 	// Закрываем БД-соединение
 	if db != nil {
 		defer func() { _ = db.Close() }()
 	}
 
+	// Инициализация сервисов
+	queries := sqlc.New(db.GetSqlDb())
+	svc := service.NewAuthService(queries, cfg.JWTSecret)
+
+	// Инициализация хендлеров gRPC-сервиса
+	authHandler := handlers.NewAuthHandler(svc)
+
 	// Запуск gRPC-сервера
-	srv, err := startGRPCServer(cfg)
+	srv, err := startGRPCServer(cfg, authHandler)
 	if err != nil {
 		return err
 	}
@@ -88,7 +95,7 @@ func LoggingInterceptor(
 }
 
 // Функция для запуска grpc-сервера
-func startGRPCServer(cfg *config.Config) (*grpc.Server, error) {
+func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*grpc.Server, error) {
 	// 1. Открываем listener на нужном порту
 	listener, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
@@ -109,12 +116,10 @@ func startGRPCServer(cfg *config.Config) (*grpc.Server, error) {
 		//grpc.Creds(creds), // добавляем TLS
 	)
 
-	// To do: добавить регистрацию сервисов и запуск сервера в горутине
-	// 3. Создаём свой сервер с бизнес-логикой
+	// 3. Регистрируем его в gRPC-сервере
+	pb.RegisterAuthServiceServer(grpcServer, authHandler)
 
-	// 4. Регистрируем его в gRPC-сервере
-
-	// 5. Запускаем в горутине, чтобы не блокировать main
+	// 4. Запускаем в горутине, чтобы не блокировать main
 	go func() {
 		logger.Log.Info("Grpc server starts")
 		if err := grpcServer.Serve(listener); err != nil {

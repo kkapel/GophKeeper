@@ -8,6 +8,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kkapel/gophkeeper/internal/db/sqlc"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -46,6 +47,10 @@ func (s *AuthService) Register(ctx context.Context, login, password string) (str
 		PasswordHash: string(hash),
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
+			return "", ErrLoginTaken
+		}
 		return "", fmt.Errorf("Register: create user: %w", err)
 	}
 
