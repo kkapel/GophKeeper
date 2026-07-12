@@ -13,7 +13,7 @@ var rootCmd = &cobra.Command{
 var serverAddress string
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&serverAddress, "server", "address", "localhost:8080", "Адрес grpc-сервера в формате host:port")
+	rootCmd.PersistentFlags().StringVar(&serverAddress, "address", "127.0.0.1:8080", "Адрес grpc-сервера в формате host:port")
 }
 
 // Execute запускает разбор и выполнение команд.
