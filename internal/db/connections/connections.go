@@ -3,6 +3,7 @@ package connections
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 
@@ -20,7 +21,7 @@ type DB struct {
 // Инициализация БД
 func InitDB(dbConnect string, migrationsPath string) (*DB, error) {
 	if dbConnect == "" {
-		return nil, nil
+		return nil, errors.New("database DSN is empty")
 	}
 	db, err := sql.Open("pgx", dbConnect)
 	if err != nil {

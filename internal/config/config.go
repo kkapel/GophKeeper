@@ -11,6 +11,7 @@ type Config struct {
 	GRPCAddress string
 	LoggerLevel string
 	DataBaseURL string
+	JWTSecret   string
 }
 
 func LoadConfig() (*Config, error) {
@@ -31,6 +32,7 @@ func LoadConfig() (*Config, error) {
 		GRPCAddress: v.GetString("grpc_address"),
 		LoggerLevel: v.GetString("logger_level"),
 		DataBaseURL: v.GetString("database_url"),
+		JWTSecret:   v.GetString("jwt_secret"),
 	}
 
 	if err := config.validate(); err != nil {
@@ -44,6 +46,9 @@ func LoadConfig() (*Config, error) {
 func (c *Config) validate() error {
 	if c.DataBaseURL == "" {
 		return fmt.Errorf("DATABASE_URL is required")
+	}
+	if c.JWTSecret == "" {
+		return fmt.Errorf("JWT_SECRET is required")
 	}
 	return nil
 }
