@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -14,6 +15,7 @@ import (
 )
 
 var ErrLoginTaken = errors.New("login already taken")
+var ErrInvalidCredentials = errors.New("invalid login or password")
 
 // UserStorage описывает операции с пользователями, нужные сервису аутентификации.
 type UserStorage interface {
@@ -71,4 +73,30 @@ func (s *AuthService) generateToken(userID uuid.UUID) (string, error) {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))
+}
+
+// Login аутентифицирует пользователя: проверяет логин и пароль, и возвращает
+// подписанный JWT-токен.
+func (s *AuthService) Login(ctx context.Context, login, password string) (string, error) {
+	user, err := s.storage.GetUserByLogin(ctx, login)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", ErrInvalidCredentials
+		}
+		return "", fmt.Errorf("Login: get user by login: %w", err)
+	}
+
+	// Сверяем хеш пароля с введённым паролем
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		// Если пароли не совпадают, возвращаем ошибку аутентификации
+		return "", ErrInvalidCredentials
+	}
+
+	// Пароли совпали, генерируем токен
+	token, err := s.generateToken(user.ID)
+	if err != nil {
+		return "", fmt.Errorf("Login: generate token: %w", err)
+	}
+	return token, nil
 }

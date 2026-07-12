@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -17,15 +18,14 @@ type mockUserStorage struct {
 	createdParams sqlc.CreateUserParams // что реально ушло в CreateUser
 	createResult  sqlc.CreateUserRow
 	createErr     error
+
+	getResult sqlc.User
+	getErr    error
 }
 
 func (m *mockUserStorage) CreateUser(ctx context.Context, arg sqlc.CreateUserParams) (sqlc.CreateUserRow, error) {
 	m.createdParams = arg // запоминаем аргумент для последующей проверки
 	return m.createResult, m.createErr
-}
-
-func (m *mockUserStorage) GetUserByLogin(ctx context.Context, login string) (sqlc.User, error) {
-	return sqlc.User{}, nil // для регистрации не нужен
 }
 
 func TestAuthService_Register_Success(t *testing.T) {
@@ -75,5 +75,60 @@ func TestAuthService_Register_LoginTaken(t *testing.T) {
 	_, err := svc.Register(context.Background(), "user1", "secret123")
 	if !errors.Is(err, ErrLoginTaken) {
 		t.Errorf("expected ErrLoginTaken, got %v", err)
+	}
+}
+
+func (m *mockUserStorage) GetUserByLogin(ctx context.Context, login string) (sqlc.User, error) {
+	return m.getResult, m.getErr
+}
+
+func TestAuthService_Login_Success(t *testing.T) {
+	const password = "secret123"
+	hash, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+	mock := &mockUserStorage{
+		getResult: sqlc.User{
+			ID:           uuid.New(),
+			Login:        "user1",
+			PasswordHash: string(hash),
+		},
+	}
+	svc := NewAuthService(mock, "test-secret")
+
+	token, err := svc.Login(context.Background(), "user1", password)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if token == "" {
+		t.Error("expected non-empty token")
+	}
+}
+
+func TestAuthService_Login_WrongPassword(t *testing.T) {
+	hash, _ := bcrypt.GenerateFromPassword([]byte("correct-password"), bcrypt.DefaultCost)
+
+	mock := &mockUserStorage{
+		getResult: sqlc.User{
+			ID:           uuid.New(),
+			PasswordHash: string(hash),
+		},
+	}
+	svc := NewAuthService(mock, "test-secret")
+
+	_, err := svc.Login(context.Background(), "user1", "wrong-password")
+	if !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("expected ErrInvalidCredentials, got %v", err)
+	}
+}
+
+func TestAuthService_Login_UserNotFound(t *testing.T) {
+	mock := &mockUserStorage{
+		getErr: sql.ErrNoRows,
+	}
+	svc := NewAuthService(mock, "test-secret")
+
+	_, err := svc.Login(context.Background(), "nobody", "secret123")
+	if !errors.Is(err, ErrInvalidCredentials) {
+		t.Errorf("expected ErrInvalidCredentials, got %v", err)
 	}
 }
