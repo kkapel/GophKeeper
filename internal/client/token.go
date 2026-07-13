@@ -31,6 +31,8 @@ func saveToken(token string) error {
 }
 
 // loadToken читает сохранённый токен из файла.
+//
+//nolint:unused
 func loadToken() (string, error) {
 	path, err := tokenFilePath()
 	if err != nil {

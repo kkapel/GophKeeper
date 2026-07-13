@@ -42,7 +42,7 @@ var registerCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("не удалось подключиться к серверу: %v", err)
 		}
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Вызываем метод регистрации
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

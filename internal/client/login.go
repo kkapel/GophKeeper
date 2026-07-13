@@ -36,7 +36,7 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("не удалось подключиться к серверу: %w", err)
 		}
 
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
