@@ -110,9 +110,13 @@ func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*gr
 	//	return nil, err
 	//	}
 
+	authInterceptor := NewAuthInterceptor(cfg.JWTSecret)
+
 	// 2. Создаём экземпляр gRPC-сервера
 	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(LoggingInterceptor), // добавляем логирование
+		grpc.ChainUnaryInterceptor(
+			LoggingInterceptor, authInterceptor.Unary), // добавляем логирование
+		// добавляем аутентификацию
 		//grpc.Creds(creds), // добавляем TLS
 	)
 
