@@ -20,7 +20,6 @@ type KeeperService struct {
 // CreateItem создает новый элемент в хранилище и возвращает его.
 func (s *KeeperService) CreateItem(
 	ctx context.Context,
-	arg sqlc.CreateItemParams,
 	userID uuid.UUID,
 	itemType int16,
 	encryptedPayload []byte,
@@ -38,4 +37,10 @@ func (s *KeeperService) CreateItem(
 	}
 
 	return item, nil
+}
+
+func NewKeepService(storage ItemStorage) *KeeperService {
+	return &KeeperService{
+		storage: storage,
+	}
 }

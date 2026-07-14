@@ -49,12 +49,14 @@ func Run() error {
 	// Инициализация сервисов
 	queries := sqlc.New(db.GetSqlDb())
 	svc := service.NewAuthService(queries, cfg.JWTSecret)
+	keepSvc := service.NewKeepService(queries)
 
 	// Инициализация хендлеров gRPC-сервиса
 	authHandler := handlers.NewAuthHandler(svc)
+	keepHandler := handlers.NewKeeperHandler(keepSvc)
 
 	// Запуск gRPC-сервера
-	srv, err := startGRPCServer(cfg, authHandler)
+	srv, err := startGRPCServer(cfg, authHandler, keepHandler)
 	if err != nil {
 		return err
 	}
@@ -95,7 +97,7 @@ func LoggingInterceptor(
 }
 
 // Функция для запуска grpc-сервера
-func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*grpc.Server, error) {
+func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler, keepHandler *handlers.KeeperHandler) (*grpc.Server, error) {
 	// 1. Открываем listener на нужном порту
 	listener, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
@@ -122,6 +124,7 @@ func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*gr
 
 	// 3. Регистрируем его в gRPC-сервере
 	pb.RegisterAuthServiceServer(grpcServer, authHandler)
+	pb.RegisterKeeperServiceServer(grpcServer, keepHandler)
 
 	// 4. Запускаем в горутине, чтобы не блокировать main
 	go func() {
