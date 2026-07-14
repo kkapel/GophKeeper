@@ -49,7 +49,7 @@ func Run() error {
 	// Инициализация сервисов
 	queries := sqlc.New(db.GetSqlDb())
 	svc := service.NewAuthService(queries, cfg.JWTSecret)
-	keepSvc := service.NewKeepService(queries)
+	keepSvc := service.NewKeeperService(queries)
 
 	// Инициализация хендлеров gRPC-сервиса
 	authHandler := handlers.NewAuthHandler(svc)
