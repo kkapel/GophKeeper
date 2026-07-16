@@ -17,3 +17,17 @@ func newAuthClient(address string) (pb.AuthServiceClient, *grpc.ClientConn, erro
 	}
 	return pb.NewAuthServiceClient(conn), conn, nil
 }
+
+// newKeeperClient создаёт gRPC-клиент KeeperService.
+func newKeeperClient(address string) (pb.KeeperServiceClient, *grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(
+		address,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return pb.NewKeeperServiceClient(conn), conn, nil
+}

@@ -1,8 +1,11 @@
 package client
 
 import (
+	"context"
 	"os"
 	"path/filepath"
+
+	"google.golang.org/grpc/metadata"
 )
 
 // tokenFilePath возвращает путь к файлу с токеном: ~/.gophkeeper/token
@@ -31,8 +34,6 @@ func saveToken(token string) error {
 }
 
 // loadToken читает сохранённый токен из файла.
-//
-//nolint:unused
 func loadToken() (string, error) {
 	path, err := tokenFilePath()
 	if err != nil {
@@ -45,4 +46,9 @@ func loadToken() (string, error) {
 	}
 
 	return string(data), nil
+}
+
+// withToken добавляет JWT-токен в исходящий контекст запроса.
+func withToken(ctx context.Context, token string) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, "authorization", "Bearer "+token)
 }
