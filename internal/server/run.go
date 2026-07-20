@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/kkapel/gophkeeper/internal/logger"
 	"github.com/kkapel/gophkeeper/internal/service"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
 	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
@@ -105,21 +107,18 @@ func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler, keep
 	}
 
 	// Загружаем TLS-сертификаты
-	// to do : сгенерировать сертификаты
-	// пути сделать настраиваемыми через конфиг
-	//creds, err := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
-	//if err != nil {
-	//	return nil, err
-	//	}
+	creds, err := credentials.NewServerTLSFromFile(cfg.TLSCertPath, cfg.TLSKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("load TLS credentials: %w", err)
+	}
 
 	authInterceptor := NewAuthInterceptor(cfg.JWTSecret)
 
 	// 2. Создаём экземпляр gRPC-сервера
 	grpcServer := grpc.NewServer(
+		grpc.Creds(creds), // добавляем TLS
 		grpc.ChainUnaryInterceptor(
-			LoggingInterceptor, authInterceptor.Unary), // добавляем логирование
-		// добавляем аутентификацию
-		//grpc.Creds(creds), // добавляем TLS
+			LoggingInterceptor, authInterceptor.Unary), // добавляем логирование и аутентификацию
 	)
 
 	// 3. Регистрируем его в gRPC-сервере
