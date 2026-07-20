@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kkapel/gophkeeper/internal/auth"
-	"github.com/kkapel/gophkeeper/internal/db/sqlc"
+	"github.com/kkapel/gophkeeper/internal/domain"
 	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
 	"github.com/kkapel/gophkeeper/internal/service"
 	"google.golang.org/grpc/codes"
@@ -16,10 +16,10 @@ import (
 
 type KeepService interface {
 	// CreateItem создает новый элемент в хранилище.
-	CreateItem(ctx context.Context, userID uuid.UUID, itemType int16, encryptedPayload []byte, metadata string) (sqlc.Item, error)
-	GetItem(ctx context.Context, userID, itemID uuid.UUID) (sqlc.Item, error)
-	ListItems(ctx context.Context, userID uuid.UUID) ([]sqlc.Item, error)
-	UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (sqlc.Item, error)
+	CreateItem(ctx context.Context, userID uuid.UUID, itemType int16, encryptedPayload []byte, metadata string) (domain.Item, error)
+	GetItem(ctx context.Context, userID, itemID uuid.UUID) (domain.Item, error)
+	ListItems(ctx context.Context, userID uuid.UUID) ([]domain.Item, error)
+	UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (domain.Item, error)
 	DeleteItem(ctx context.Context, userID, itemID uuid.UUID) error
 }
 
@@ -158,7 +158,7 @@ func NewKeeperHandler(svc KeepService) *KeeperHandler {
 }
 
 // Конвертирует sqlc.Item в pb.Item
-func itemToProto(item sqlc.Item) *pb.Item {
+func itemToProto(item domain.Item) *pb.Item {
 	id := item.ID.String()
 	itemType := pb.ItemType(item.Type)
 

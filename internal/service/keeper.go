@@ -8,12 +8,19 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kkapel/gophkeeper/internal/db/sqlc"
+	"github.com/kkapel/gophkeeper/internal/domain"
 )
 
-// ErrVersionConflict возвращается при несовпадении версии.
-var ErrVersionConflict = errors.New("version conflict")
-var ErrItemNotFound = errors.New("item not found")
+var (
+	// ErrVersionConflict возвращается при несовпадении версии записи.
+	ErrVersionConflict = errors.New("version conflict")
+	// ErrItemNotFound возвращается, когда запись не найдена
+	// или принадлежит другому пользователю.
+	ErrItemNotFound = errors.New("item not found")
+)
 
+// ItemStorage описывает операции с приватными данными,
+// необходимые сервису для работы с хранилищем.
 type ItemStorage interface {
 	// CreateItem создает новый элемент в хранилище.
 	CreateItem(ctx context.Context, arg sqlc.CreateItemParams) (sqlc.Item, error)
@@ -23,6 +30,8 @@ type ItemStorage interface {
 	DeleteItem(ctx context.Context, arg sqlc.DeleteItemParams) error
 }
 
+// KeeperService реализует бизнес-логику работы с приватными данными пользователя:
+// создание, чтение, обновление и удаление записей.
 type KeeperService struct {
 	storage ItemStorage
 }
@@ -33,7 +42,7 @@ func (s *KeeperService) CreateItem(
 	userID uuid.UUID,
 	itemType int16,
 	encryptedPayload []byte,
-	metadata string) (sqlc.Item, error) {
+	metadata string) (domain.Item, error) {
 
 	item, err := s.storage.CreateItem(ctx, sqlc.CreateItemParams{
 		UserID:           userID,
@@ -43,10 +52,10 @@ func (s *KeeperService) CreateItem(
 	})
 
 	if err != nil {
-		return sqlc.Item{}, fmt.Errorf("failed to create item: %w", err)
+		return domain.Item{}, fmt.Errorf("failed to create item: %w", err)
 	}
 
-	return item, nil
+	return toDomainItem(item), nil
 }
 
 // GetItem возвращает запись пользователя по id.
@@ -54,7 +63,7 @@ func (s *KeeperService) GetItem(
 	ctx context.Context,
 	userID uuid.UUID,
 	id uuid.UUID,
-) (sqlc.Item, error) {
+) (domain.Item, error) {
 
 	item, err := s.storage.GetItem(ctx, sqlc.GetItemParams{
 		ID:     id,
@@ -63,27 +72,31 @@ func (s *KeeperService) GetItem(
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return sqlc.Item{}, ErrItemNotFound
+			return domain.Item{}, ErrItemNotFound
 		}
-		return sqlc.Item{}, fmt.Errorf("GetItem: %w", err)
+		return domain.Item{}, fmt.Errorf("GetItem: %w", err)
 	}
 
-	return item, nil
+	return toDomainItem(item), nil
 }
 
 // ListItems возвращает все неудалённые записи пользователя.
-func (s *KeeperService) ListItems(ctx context.Context, userID uuid.UUID) ([]sqlc.Item, error) {
+func (s *KeeperService) ListItems(ctx context.Context, userID uuid.UUID) ([]domain.Item, error) {
 	items, err := s.storage.ListItems(ctx, userID)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get list items: %w", err)
 	}
 
-	return items, nil
+	domainItems := make([]domain.Item, 0, len(items))
+	for _, value := range items {
+		domainItems = append(domainItems, toDomainItem(value))
+	}
+	return domainItems, nil
 }
 
 // UpdateItem обновляет запись с проверкой версии.
-func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (sqlc.Item, error) {
+func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (domain.Item, error) {
 
 	// Смотрим, есть ли запись
 	_, err := s.storage.GetItem(ctx, sqlc.GetItemParams{
@@ -93,9 +106,9 @@ func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return sqlc.Item{}, ErrItemNotFound // записи нет
+			return domain.Item{}, ErrItemNotFound // записи нет
 		}
-		return sqlc.Item{}, fmt.Errorf("UpdateItem: %w", err)
+		return domain.Item{}, fmt.Errorf("UpdateItem: %w", err)
 	}
 
 	// Запись есть — обновляем с проверкой версии
@@ -110,12 +123,12 @@ func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// версия разошлась
-			return sqlc.Item{}, ErrVersionConflict
+			return domain.Item{}, ErrVersionConflict
 		}
-		return sqlc.Item{}, fmt.Errorf("UpdateItem: %w", err)
+		return domain.Item{}, fmt.Errorf("UpdateItem: %w", err)
 	}
 
-	return item, nil
+	return toDomainItem(item), nil
 
 }
 
@@ -133,9 +146,23 @@ func (s *KeeperService) DeleteItem(ctx context.Context, userID, id uuid.UUID) er
 	return nil
 }
 
-// Создание KeeperService
+// NewKeeperService создаёт сервис работы с приватными данными.
 func NewKeeperService(storage ItemStorage) *KeeperService {
 	return &KeeperService{
 		storage: storage,
+	}
+}
+
+// toDomainItem конвертирует запись хранилища в доменную модель.
+func toDomainItem(i sqlc.Item) domain.Item {
+	return domain.Item{
+		ID:               i.ID,
+		UserID:           i.UserID,
+		Type:             i.Type,
+		EncryptedPayload: i.EncryptedPayload,
+		Metadata:         i.Metadata,
+		Version:          i.Version,
+		CreatedAt:        i.CreatedAt,
+		UpdatedAt:        i.UpdatedAt,
 	}
 }
