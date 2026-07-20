@@ -30,7 +30,7 @@ var getCmd = &cobra.Command{
 			return fmt.Errorf("не удалось прочитать токен (выполните login): %w", err)
 		}
 
-		client, conn, err := newKeeperClient(serverAddress)
+		client, conn, err := newKeeperClient(serverAddress, certPath)
 		if err != nil {
 			return fmt.Errorf("подключение к серверу: %w", err)
 		}

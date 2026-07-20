@@ -31,7 +31,7 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("укажите пароль через --password")
 		}
 
-		auth, conn, err := newAuthClient(serverAddress)
+		auth, conn, err := newAuthClient(serverAddress, certPath)
 		if err != nil {
 			return fmt.Errorf("не удалось подключиться к серверу: %w", err)
 		}

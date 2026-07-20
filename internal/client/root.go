@@ -11,9 +11,11 @@ var rootCmd = &cobra.Command{
 }
 
 var serverAddress string
+var certPath string
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&serverAddress, "address", "127.0.0.1:8080", "Адрес grpc-сервера в формате host:port")
+	rootCmd.PersistentFlags().StringVar(&certPath, "cert", "", "путь к TLS-сертификату сервера")
 }
 
 // Execute запускает разбор и выполнение команд.

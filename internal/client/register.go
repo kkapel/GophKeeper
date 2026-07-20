@@ -38,7 +38,7 @@ var registerCmd = &cobra.Command{
 		}
 
 		// Подключаемся к gRPC-серверу
-		authClient, conn, err := newAuthClient(serverAddress)
+		authClient, conn, err := newAuthClient(serverAddress, certPath)
 		if err != nil {
 			return fmt.Errorf("не удалось подключиться к серверу: %v", err)
 		}
