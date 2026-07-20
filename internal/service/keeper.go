@@ -84,6 +84,21 @@ func (s *KeeperService) ListItems(ctx context.Context, userID uuid.UUID) ([]sqlc
 
 // UpdateItem обновляет запись с проверкой версии.
 func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (sqlc.Item, error) {
+
+	// Смотрим, есть ли запись
+	_, err := s.storage.GetItem(ctx, sqlc.GetItemParams{
+		ID:     itemID,
+		UserID: userID,
+	})
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sqlc.Item{}, ErrItemNotFound // записи нет
+		}
+		return sqlc.Item{}, fmt.Errorf("UpdateItem: %w", err)
+	}
+
+	// Запись есть — обновляем с проверкой версии
 	item, err := s.storage.UpdateItem(ctx, sqlc.UpdateItemParams{
 		ID:               itemID,
 		UserID:           userID,
@@ -94,7 +109,7 @@ func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			// либо версия разошлась, либо записи нет
+			// версия разошлась
 			return sqlc.Item{}, ErrVersionConflict
 		}
 		return sqlc.Item{}, fmt.Errorf("UpdateItem: %w", err)

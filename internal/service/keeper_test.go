@@ -166,26 +166,37 @@ func TestKeeperService_ListItems_StorageError(t *testing.T) {
 
 // --- UpdateItem ---
 
+func TestKeeperService_UpdateItem_NotFound(t *testing.T) {
+	mock := &mockItemStorage{getErr: sql.ErrNoRows}
+	svc := NewKeeperService(mock)
+	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
+	if !errors.Is(err, ErrItemNotFound) {
+		t.Errorf("expected ErrItemNotFound, got %v", err)
+	}
+}
+
 func TestKeeperService_UpdateItem_Success(t *testing.T) {
 	mock := &mockItemStorage{
+		getResult:    sqlc.Item{ID: uuid.New()},
 		updateResult: sqlc.Item{ID: uuid.New(), Version: 3},
 	}
 	svc := NewKeeperService(mock)
-
 	item, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("new"), "meta", 2)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if item.Version != 3 {
-		t.Errorf("wrong version: got %d, want 3", item.Version)
+		t.Errorf("wrong version: got %d", item.Version)
 	}
 }
 
 func TestKeeperService_UpdateItem_VersionConflict(t *testing.T) {
-	// sql.ErrNoRows означает, что UPDATE не затронул строк — версия разошлась
-	mock := &mockItemStorage{updateErr: sql.ErrNoRows}
+	mock := &mockItemStorage{
+		getResult: sqlc.Item{ID: uuid.New()}, // SELECT нашёл запись
+		getErr:    nil,
+		updateErr: sql.ErrNoRows, // но UPDATE не сработал → версия
+	}
 	svc := NewKeeperService(mock)
-
 	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
 	if !errors.Is(err, ErrVersionConflict) {
 		t.Errorf("expected ErrVersionConflict, got %v", err)
@@ -193,7 +204,10 @@ func TestKeeperService_UpdateItem_VersionConflict(t *testing.T) {
 }
 
 func TestKeeperService_UpdateItem_StorageError(t *testing.T) {
-	mock := &mockItemStorage{updateErr: errors.New("db error")}
+	mock := &mockItemStorage{
+		getResult: sqlc.Item{ID: uuid.New()}, // SELECT нашёл запись (явно)
+		updateErr: errors.New("db error"),    // UPDATE упал реальной ошибкой
+	}
 	svc := NewKeeperService(mock)
 
 	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)

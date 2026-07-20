@@ -118,6 +118,9 @@ func (h *KeeperHandler) UpdateItem(ctx context.Context, req *pb.UpdateItemReques
 
 	item, err := h.service.UpdateItem(ctx, userID, itemID, req.GetEncryptedPayload(), req.GetMetadata(), req.GetVersion())
 	if err != nil {
+		if errors.Is(err, service.ErrItemNotFound) {
+			return nil, status.Error(codes.NotFound, "item not found")
+		}
 		if errors.Is(err, service.ErrVersionConflict) {
 			return nil, status.Error(codes.Aborted, "version conflict, reload and retry")
 		}
