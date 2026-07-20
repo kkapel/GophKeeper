@@ -13,19 +13,18 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var publicMethods = map[string]bool{
-	"/gophkeeper.v1.AuthService/Register": true,
-	"/gophkeeper.v1.AuthService/Login":    true,
-}
-
 // AuthInterceptor — структура для перехвата gRPC-запросов и проверки JWT-токена.
 type AuthInterceptor struct {
-	jwtSecret string
+	jwtSecret     string
+	publicMethods map[string]bool
 }
 
 // NewAuthInterceptor создаёт новый экземпляр AuthInterceptor с заданным секретом JWT.
-func NewAuthInterceptor(jwtSecret string) *AuthInterceptor {
-	return &AuthInterceptor{jwtSecret: jwtSecret}
+func NewAuthInterceptor(jwtSecret string, publicMethods map[string]bool) *AuthInterceptor {
+	return &AuthInterceptor{
+		jwtSecret:     jwtSecret,
+		publicMethods: publicMethods,
+	}
 }
 
 // Unary возвращает gRPC хэнделер для перехвата unary-запросов и проверки JWT-токена.
@@ -36,7 +35,7 @@ func (a *AuthInterceptor) Unary(
 	handler grpc.UnaryHandler,
 ) (any, error) {
 
-	if publicMethods[info.FullMethod] {
+	if a.publicMethods[info.FullMethod] {
 		// Если метод публичный, пропускаем проверку токена
 		return handler(ctx, req)
 	}

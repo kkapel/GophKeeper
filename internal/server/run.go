@@ -112,7 +112,12 @@ func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler, keep
 		return nil, fmt.Errorf("load TLS credentials: %w", err)
 	}
 
-	authInterceptor := NewAuthInterceptor(cfg.JWTSecret)
+	publicMethods := map[string]bool{
+		"/gophkeeper.v1.AuthService/Register": true,
+		"/gophkeeper.v1.AuthService/Login":    true,
+	}
+
+	authInterceptor := NewAuthInterceptor(cfg.JWTSecret, publicMethods)
 
 	// 2. Создаём экземпляр gRPC-сервера
 	grpcServer := grpc.NewServer(
