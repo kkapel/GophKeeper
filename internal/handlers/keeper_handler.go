@@ -14,6 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+//go:generate mockgen -source=keeper_handler.go -destination=mocks/mock_keep_service.go -package=mocks KeepService
 type KeepService interface {
 	// CreateItem создает новый элемент в хранилище.
 	CreateItem(ctx context.Context, userID uuid.UUID, itemType int16, encryptedPayload []byte, metadata string) (domain.Item, error)

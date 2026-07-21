@@ -8,40 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/kkapel/gophkeeper/internal/auth"
 	"github.com/kkapel/gophkeeper/internal/domain"
+	"github.com/kkapel/gophkeeper/internal/handlers/mocks"
 	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
 	"github.com/kkapel/gophkeeper/internal/service"
+	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
-
-// mockKeeperService — заглушка сервиса для тестов KeeperHandler.
-type mockKeeperService struct {
-	createResult domain.Item
-	createErr    error
-	getResult    domain.Item
-	getErr       error
-	listResult   []domain.Item
-	listErr      error
-	updateResult domain.Item
-	updateErr    error
-	deleteErr    error
-}
-
-func (m *mockKeeperService) CreateItem(ctx context.Context, userID uuid.UUID, itemType int16, payload []byte, metadata string) (domain.Item, error) {
-	return m.createResult, m.createErr
-}
-func (m *mockKeeperService) GetItem(ctx context.Context, userID, itemID uuid.UUID) (domain.Item, error) {
-	return m.getResult, m.getErr
-}
-func (m *mockKeeperService) ListItems(ctx context.Context, userID uuid.UUID) ([]domain.Item, error) {
-	return m.listResult, m.listErr
-}
-func (m *mockKeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (domain.Item, error) {
-	return m.updateResult, m.updateErr
-}
-func (m *mockKeeperService) DeleteItem(ctx context.Context, userID, itemID uuid.UUID) error {
-	return m.deleteErr
-}
 
 // ctxWithUser — контекст с user_id, как его кладёт интерцептор.
 func ctxWithUser() context.Context {
@@ -51,7 +24,11 @@ func ctxWithUser() context.Context {
 // --- CreateItem ---
 
 func TestKeeperHandler_CreateItem_NoUserID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+	// сервис не должен вызваться — EXPECT не задаём
+
+	h := NewKeeperHandler(mockSvc)
 	req := pb.CreateItemRequest_builder{}.Build()
 
 	_, err := h.CreateItem(context.Background(), req)
@@ -61,9 +38,14 @@ func TestKeeperHandler_CreateItem_NoUserID(t *testing.T) {
 }
 
 func TestKeeperHandler_CreateItem_Success(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{
-		createResult: domain.Item{ID: uuid.New(), Version: 1},
-	})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		CreateItem(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New(), Version: 1}, nil)
+
+	h := NewKeeperHandler(mockSvc)
 	req := pb.CreateItemRequest_builder{}.Build()
 
 	resp, err := h.CreateItem(ctxWithUser(), req)
@@ -76,7 +58,14 @@ func TestKeeperHandler_CreateItem_Success(t *testing.T) {
 }
 
 func TestKeeperHandler_CreateItem_ServiceError(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{createErr: errors.New("boom")})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		CreateItem(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, errors.New("boom"))
+
+	h := NewKeeperHandler(mockSvc)
 	req := pb.CreateItemRequest_builder{}.Build()
 
 	_, err := h.CreateItem(ctxWithUser(), req)
@@ -88,7 +77,10 @@ func TestKeeperHandler_CreateItem_ServiceError(t *testing.T) {
 // --- GetItem ---
 
 func TestKeeperHandler_GetItem_NoUserID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.GetItemRequest_builder{Id: &id}.Build()
 
@@ -99,7 +91,10 @@ func TestKeeperHandler_GetItem_NoUserID(t *testing.T) {
 }
 
 func TestKeeperHandler_GetItem_InvalidID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	bad := "not-a-uuid"
 	req := pb.GetItemRequest_builder{Id: &bad}.Build()
 
@@ -110,7 +105,14 @@ func TestKeeperHandler_GetItem_InvalidID(t *testing.T) {
 }
 
 func TestKeeperHandler_GetItem_NotFound(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{getErr: service.ErrItemNotFound})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, service.ErrItemNotFound)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.GetItemRequest_builder{Id: &id}.Build()
 
@@ -121,9 +123,14 @@ func TestKeeperHandler_GetItem_NotFound(t *testing.T) {
 }
 
 func TestKeeperHandler_GetItem_Success(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{
-		getResult: domain.Item{ID: uuid.New(), Version: 1},
-	})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New(), Version: 1}, nil)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.GetItemRequest_builder{Id: &id}.Build()
 
@@ -139,7 +146,10 @@ func TestKeeperHandler_GetItem_Success(t *testing.T) {
 // --- ListItems ---
 
 func TestKeeperHandler_ListItems_NoUserID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	req := pb.ListItemsRequest_builder{}.Build()
 
 	_, err := h.ListItems(context.Background(), req)
@@ -149,9 +159,14 @@ func TestKeeperHandler_ListItems_NoUserID(t *testing.T) {
 }
 
 func TestKeeperHandler_ListItems_Success(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{
-		listResult: []domain.Item{{ID: uuid.New()}, {ID: uuid.New()}},
-	})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		ListItems(gomock.Any(), gomock.Any()).
+		Return([]domain.Item{{ID: uuid.New()}, {ID: uuid.New()}}, nil)
+
+	h := NewKeeperHandler(mockSvc)
 	req := pb.ListItemsRequest_builder{}.Build()
 
 	resp, err := h.ListItems(ctxWithUser(), req)
@@ -166,7 +181,10 @@ func TestKeeperHandler_ListItems_Success(t *testing.T) {
 // --- UpdateItem ---
 
 func TestKeeperHandler_UpdateItem_NoUserID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.UpdateItemRequest_builder{Id: &id}.Build()
 
@@ -177,7 +195,10 @@ func TestKeeperHandler_UpdateItem_NoUserID(t *testing.T) {
 }
 
 func TestKeeperHandler_UpdateItem_InvalidID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	bad := "not-a-uuid"
 	req := pb.UpdateItemRequest_builder{Id: &bad}.Build()
 
@@ -188,7 +209,14 @@ func TestKeeperHandler_UpdateItem_InvalidID(t *testing.T) {
 }
 
 func TestKeeperHandler_UpdateItem_NotFound(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{updateErr: service.ErrItemNotFound})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		UpdateItem(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, service.ErrItemNotFound)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.UpdateItemRequest_builder{Id: &id}.Build()
 
@@ -199,7 +227,14 @@ func TestKeeperHandler_UpdateItem_NotFound(t *testing.T) {
 }
 
 func TestKeeperHandler_UpdateItem_VersionConflict(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{updateErr: service.ErrVersionConflict})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		UpdateItem(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, service.ErrVersionConflict)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.UpdateItemRequest_builder{Id: &id}.Build()
 
@@ -210,9 +245,14 @@ func TestKeeperHandler_UpdateItem_VersionConflict(t *testing.T) {
 }
 
 func TestKeeperHandler_UpdateItem_Success(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{
-		updateResult: domain.Item{ID: uuid.New(), Version: 2},
-	})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		UpdateItem(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New(), Version: 2}, nil)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.UpdateItemRequest_builder{Id: &id}.Build()
 
@@ -228,7 +268,10 @@ func TestKeeperHandler_UpdateItem_Success(t *testing.T) {
 // --- DeleteItem ---
 
 func TestKeeperHandler_DeleteItem_NoUserID(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.DeleteItemRequest_builder{Id: &id}.Build()
 
@@ -239,7 +282,14 @@ func TestKeeperHandler_DeleteItem_NoUserID(t *testing.T) {
 }
 
 func TestKeeperHandler_DeleteItem_Success(t *testing.T) {
-	h := NewKeeperHandler(&mockKeeperService{})
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		DeleteItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	h := NewKeeperHandler(mockSvc)
 	id := uuid.New().String()
 	req := pb.DeleteItemRequest_builder{Id: &id}.Build()
 
