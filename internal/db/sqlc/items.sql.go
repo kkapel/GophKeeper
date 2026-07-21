@@ -59,6 +59,7 @@ type DeleteItemParams struct {
 }
 
 // DeleteItem выполняет мягкое удаление записи.
+// Выполняется update c флагом удаления true
 func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
 	_, err := q.db.ExecContext(ctx, deleteItem, arg.ID, arg.UserID)
 	return err
