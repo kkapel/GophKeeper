@@ -23,6 +23,7 @@ import (
 	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
 )
 
+// Run запускает grpc-сервер и инциализирует конфиги и подключения
 func Run() error {
 	// Инициализация конфигурации
 	cfg, err := config.LoadConfig()
@@ -75,6 +76,7 @@ func Run() error {
 	return nil
 }
 
+// LoggingInterceptor добавляет логирование в поступающие вызовы
 func LoggingInterceptor(
 	ctx context.Context,
 	req any,

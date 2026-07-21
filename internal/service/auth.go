@@ -14,8 +14,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var ErrLoginTaken = errors.New("login already taken")
-var ErrInvalidCredentials = errors.New("invalid login or password")
+// ErrLoginTaken - логин уже занят
+// ErrInvalidCredentials - неверный логин или пароль
+var (
+	ErrLoginTaken         = errors.New("login already taken")
+	ErrInvalidCredentials = errors.New("invalid login or password")
+)
 
 // UserStorage описывает операции с пользователями, нужные сервису аутентификации.
 type UserStorage interface {

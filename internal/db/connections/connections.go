@@ -1,3 +1,5 @@
+// Package connections устанавливает подключение к PostgreSQL
+// и применяет миграции.
 package connections
 
 import (
@@ -14,11 +16,12 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// DB — обёртка над пулом подключений к базе данных.
 type DB struct {
 	db *sql.DB
 }
 
-// Инициализация БД
+// InitDB открывает подключение к базе, проверяет его и применяет миграции.
 func InitDB(dbConnect string, migrationsPath string) (*DB, error) {
 	if dbConnect == "" {
 		return nil, errors.New("database DSN is empty")
@@ -42,6 +45,7 @@ func InitDB(dbConnect string, migrationsPath string) (*DB, error) {
 
 }
 
+// CheckConnect проверяет доступность базы данных.
 func (db *DB) CheckConnect() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -53,6 +57,7 @@ func (db *DB) CheckConnect() error {
 	return nil
 }
 
+// Close закрывает подключение к базе данных.
 func (db *DB) Close() error {
 	err := db.db.Close()
 	if err != nil {
@@ -80,6 +85,7 @@ func migrateDB(dbConnect string, migrationsPath string) error {
 	return nil
 }
 
+// GetSqlDb возвращает базовый пул *sql.DB.
 func (db *DB) GetSqlDb() *sql.DB {
 	return db.db
 }

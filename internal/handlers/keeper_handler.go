@@ -15,6 +15,9 @@ import (
 )
 
 //go:generate mockgen -source=keeper_handler.go -destination=mocks/mock_keep_service.go -package=mocks KeepService
+
+// KeepService описывает бизнес-логику работы с приватными данными,
+// необходимую хендлеру.
 type KeepService interface {
 	// CreateItem создает новый элемент в хранилище.
 	CreateItem(ctx context.Context, userID uuid.UUID, itemType int16, encryptedPayload []byte, metadata string) (domain.Item, error)
@@ -24,6 +27,7 @@ type KeepService interface {
 	DeleteItem(ctx context.Context, userID, itemID uuid.UUID) error
 }
 
+// KeeperHandler реализует gRPC-сервис работы с приватными данными.
 type KeeperHandler struct {
 	pb.UnimplementedKeeperServiceServer
 	service KeepService
@@ -153,12 +157,12 @@ func (h *KeeperHandler) DeleteItem(ctx context.Context, req *pb.DeleteItemReques
 	return pb.DeleteItemResponse_builder{}.Build(), nil
 }
 
-// Создание KeepHandler
+// NewKeeperHandler создаёт хендлер работы с приватными данными.
 func NewKeeperHandler(svc KeepService) *KeeperHandler {
 	return &KeeperHandler{service: svc}
 }
 
-// Конвертирует sqlc.Item в pb.Item
+// itemToProto конвертирует доменную модель в protobuf-сообщение.
 func itemToProto(item domain.Item) *pb.Item {
 	id := item.ID.String()
 	itemType := pb.ItemType(item.Type)

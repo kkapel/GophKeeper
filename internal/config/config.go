@@ -1,3 +1,4 @@
+// Package config загружает конфигурацию сервера из переменных окружения.
 package config
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config содержит параметры запуска сервера GophKeeper.
 type Config struct {
 	GRPCAddress string
 	LoggerLevel string
@@ -16,6 +18,8 @@ type Config struct {
 	TLSKeyPath  string
 }
 
+// LoadConfig читает конфигурацию из переменных окружения (префикс GOPHKEEPER_)
+// и проверяет наличие обязательных параметров.
 func LoadConfig() (*Config, error) {
 	v := viper.New()
 
