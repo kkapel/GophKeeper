@@ -18,17 +18,16 @@ func SetBuildInfo(version, date string) {
 	buildDate = date
 }
 
-// versionCmd выводит версию и дату сборки клиента.
-var versionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Показать версию и дату сборки",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Build version:", buildVersion)
-		fmt.Println("Build date:", buildDate)
-	},
-}
+// newVersionCmd выводит версию и дату сборки клиента.
+func newVersionCmd() *cobra.Command {
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Показать версию и дату сборки",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println("Build version:", buildVersion)
+			fmt.Println("Build date:", buildDate)
+		},
+	}
 
-// init подключает команду version к корневой команде.
-func init() {
-	rootCmd.AddCommand(versionCmd)
+	return versionCmd
 }

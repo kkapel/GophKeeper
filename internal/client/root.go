@@ -3,22 +3,32 @@ package client
 
 import "github.com/spf13/cobra"
 
-// rootCmd — корневая команда приложения.
-var rootCmd = &cobra.Command{
-	Use:   "gophkeeper",
-	Short: "GophKeeper — клиент менеджера паролей",
-	Long:  "Клиент-серверный менеджер паролей для безопасного хранения приватных данных.",
-}
+var (
+	serverAddress string
+	certPath      string
+)
 
-var serverAddress string
-var certPath string
+// NewRootCmd — корневая команда приложения.
+func NewRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:   "gophkeeper",
+		Short: "GophKeeper — клиент менеджера паролей",
+	}
 
-func init() {
-	rootCmd.PersistentFlags().StringVar(&serverAddress, "address", "127.0.0.1:8080", "Адрес grpc-сервера в формате host:port")
-	rootCmd.PersistentFlags().StringVar(&certPath, "cert", "", "путь к TLS-сертификату сервера")
-}
+	// persistent-флаги корня
+	root.PersistentFlags().StringVar(&serverAddress, "address", "127.0.0.1:8080", "адрес gRPC-сервера")
+	root.PersistentFlags().StringVar(&certPath, "cert", "", "путь к TLS-сертификату сервера")
 
-// Execute запускает разбор и выполнение команд.
-func Execute() error {
-	return rootCmd.Execute()
+	// явно добавляем все подкоманды
+	root.AddCommand(
+		newRegisterCmd(),
+		newLoginCmd(),
+		newAddCmd(),
+		newGetCmd(),
+		newListCmd(),
+		newDeleteCmd(),
+		newVersionCmd(),
+	)
+
+	return root
 }
