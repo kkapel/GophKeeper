@@ -67,7 +67,11 @@ func (a *AuthInterceptor) authorize(ctx context.Context) (uuid.UUID, error) {
 
 	// Проверяем токен
 	// Формат токена: "Bearer <token>"
-	tokenStr := strings.TrimPrefix(values[0], "Bearer ")
+	tokenStr, ok := strings.CutPrefix(values[0], "Bearer ")
+
+	if !ok {
+		return uuid.Nil, status.Error(codes.Unauthenticated, "invalid authorization header format")
+	}
 
 	// Парсим токен и получаем UUID пользователя
 	claims := &jwt.RegisteredClaims{}
