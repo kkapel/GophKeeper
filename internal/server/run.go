@@ -16,6 +16,7 @@ import (
 	"github.com/kkapel/gophkeeper/internal/handlers"
 	"github.com/kkapel/gophkeeper/internal/logger"
 	"github.com/kkapel/gophkeeper/internal/service"
+	"github.com/kkapel/gophkeeper/internal/storage"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
@@ -51,8 +52,9 @@ func Run() error {
 
 	// Инициализация сервисов
 	queries := sqlc.New(db.GetSqlDb())
+	itemStorage := storage.NewItemStorage(queries)
 	svc := service.NewAuthService(queries, cfg.JWTSecret)
-	keepSvc := service.NewKeeperService(queries)
+	keepSvc := service.NewKeeperService(itemStorage)
 
 	// Инициализация хендлеров gRPC-сервиса
 	authHandler := handlers.NewAuthHandler(svc)

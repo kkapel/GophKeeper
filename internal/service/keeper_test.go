@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/kkapel/gophkeeper/internal/db/sqlc"
+	"github.com/kkapel/gophkeeper/internal/domain"
 	"github.com/kkapel/gophkeeper/internal/service/mocks"
 	"go.uber.org/mock/gomock"
 )
@@ -20,13 +19,13 @@ func TestKeeperService_CreateItem_Success(t *testing.T) {
 
 	userID := uuid.New()
 	mockStorage.EXPECT().
-		CreateItem(gomock.Any(), gomock.Cond(func(arg sqlc.CreateItemParams) bool {
-			return arg.UserID == userID &&
-				arg.Type == 4 &&
-				string(arg.EncryptedPayload) == "encrypted-data" &&
-				arg.Metadata == "Visa"
+		CreateItem(gomock.Any(), gomock.Cond(func(item domain.Item) bool {
+			return item.UserID == userID &&
+				item.Type == 4 &&
+				string(item.EncryptedPayload) == "encrypted-data" &&
+				item.Metadata == "Visa"
 		})).
-		Return(sqlc.Item{ID: uuid.New(), Version: 1}, nil)
+		Return(domain.Item{ID: uuid.New(), Version: 1}, nil)
 
 	svc := NewKeeperService(mockStorage)
 
@@ -36,6 +35,7 @@ func TestKeeperService_CreateItem_Success(t *testing.T) {
 	}
 	if item.Version != 1 {
 		t.Errorf("wrong version: got %d", item.Version)
+		return
 	}
 }
 
@@ -45,13 +45,14 @@ func TestKeeperService_CreateItem_StorageError(t *testing.T) {
 
 	mockStorage.EXPECT().
 		CreateItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, errors.New("db error"))
+		Return(domain.Item{}, errors.New("db error"))
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.CreateItem(context.Background(), uuid.New(), 1, []byte("x"), "")
 	if err == nil {
 		t.Error("expected error, got nil")
+		return
 	}
 }
 
@@ -63,8 +64,8 @@ func TestKeeperService_GetItem_Success(t *testing.T) {
 
 	itemID := uuid.New()
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{ID: itemID, Version: 2}, nil)
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: itemID, Version: 2}, nil)
 
 	svc := NewKeeperService(mockStorage)
 
@@ -74,6 +75,7 @@ func TestKeeperService_GetItem_Success(t *testing.T) {
 	}
 	if item.ID != itemID {
 		t.Errorf("wrong item id: got %v, want %v", item.ID, itemID)
+		return
 	}
 }
 
@@ -81,15 +83,17 @@ func TestKeeperService_GetItem_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
+	// хранилище сообщает доменной ошибкой, что записи нет
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, sql.ErrNoRows)
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, domain.ErrNotFound)
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.GetItem(context.Background(), uuid.New(), uuid.New())
 	if !errors.Is(err, ErrItemNotFound) {
 		t.Errorf("expected ErrItemNotFound, got %v", err)
+		return
 	}
 }
 
@@ -98,17 +102,20 @@ func TestKeeperService_GetItem_StorageError(t *testing.T) {
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, errors.New("connection lost"))
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, errors.New("connection lost"))
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.GetItem(context.Background(), uuid.New(), uuid.New())
+	// реальный сбой хранилища НЕ должен маскироваться под ErrItemNotFound
 	if errors.Is(err, ErrItemNotFound) {
-		t.Error("db error masked as ErrItemNotFound")
+		t.Error("storage error masked as ErrItemNotFound")
+		return
 	}
 	if err == nil {
 		t.Error("expected error, got nil")
+		return
 	}
 }
 
@@ -120,7 +127,7 @@ func TestKeeperService_ListItems_Success(t *testing.T) {
 
 	mockStorage.EXPECT().
 		ListItems(gomock.Any(), gomock.Any()).
-		Return([]sqlc.Item{{ID: uuid.New()}, {ID: uuid.New()}}, nil)
+		Return([]domain.Item{{ID: uuid.New()}, {ID: uuid.New()}}, nil)
 
 	svc := NewKeeperService(mockStorage)
 
@@ -130,6 +137,7 @@ func TestKeeperService_ListItems_Success(t *testing.T) {
 	}
 	if len(items) != 2 {
 		t.Errorf("wrong count: got %d, want 2", len(items))
+		return
 	}
 }
 
@@ -146,6 +154,7 @@ func TestKeeperService_ListItems_StorageError(t *testing.T) {
 	_, err := svc.ListItems(context.Background(), uuid.New())
 	if err == nil {
 		t.Error("expected error, got nil")
+		return
 	}
 }
 
@@ -155,16 +164,17 @@ func TestKeeperService_UpdateItem_NotFound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// GetItem не находит запись
+	// проверка существования не находит запись
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, sql.ErrNoRows)
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, domain.ErrNotFound)
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
 	if !errors.Is(err, ErrItemNotFound) {
 		t.Errorf("expected ErrItemNotFound, got %v", err)
+		return
 	}
 }
 
@@ -172,14 +182,14 @@ func TestKeeperService_UpdateItem_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// GetItem находит запись
+	// запись существует
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{ID: uuid.New()}, nil)
-	// UpdateItem успешно
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New()}, nil)
+	// обновление проходит
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{ID: uuid.New(), Version: 3}, nil)
+		Return(domain.Item{ID: uuid.New(), Version: 3}, nil)
 
 	svc := NewKeeperService(mockStorage)
 
@@ -189,6 +199,7 @@ func TestKeeperService_UpdateItem_Success(t *testing.T) {
 	}
 	if item.Version != 3 {
 		t.Errorf("wrong version: got %d", item.Version)
+		return
 	}
 }
 
@@ -196,20 +207,21 @@ func TestKeeperService_UpdateItem_VersionConflict(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// GetItem находит запись
+	// запись существует
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{ID: uuid.New()}, nil)
-	// UpdateItem не срабатывает — версия разошлась
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New()}, nil)
+	// но обновление не затронуло строк — версия разошлась
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, sql.ErrNoRows)
+		Return(domain.Item{}, domain.ErrNotFound)
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
 	if !errors.Is(err, ErrVersionConflict) {
 		t.Errorf("expected ErrVersionConflict, got %v", err)
+		return
 	}
 }
 
@@ -217,23 +229,25 @@ func TestKeeperService_UpdateItem_StorageError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// GetItem находит запись
+	// запись существует
 	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{ID: uuid.New()}, nil)
-	// UpdateItem падает реальной ошибкой
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New()}, nil)
+	// обновление падает реальной ошибкой
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
-		Return(sqlc.Item{}, errors.New("db error"))
+		Return(domain.Item{}, errors.New("db error"))
 
 	svc := NewKeeperService(mockStorage)
 
 	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
 	if errors.Is(err, ErrVersionConflict) {
-		t.Error("db error masked as ErrVersionConflict")
+		t.Error("storage error masked as ErrVersionConflict")
+		return
 	}
 	if err == nil {
 		t.Error("expected error, got nil")
+		return
 	}
 }
 
@@ -244,7 +258,7 @@ func TestKeeperService_DeleteItem_Success(t *testing.T) {
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
 	mockStorage.EXPECT().
-		DeleteItem(gomock.Any(), gomock.Any()).
+		DeleteItem(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	svc := NewKeeperService(mockStorage)
@@ -252,6 +266,7 @@ func TestKeeperService_DeleteItem_Success(t *testing.T) {
 	err := svc.DeleteItem(context.Background(), uuid.New(), uuid.New())
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+		return
 	}
 }
 
@@ -260,7 +275,7 @@ func TestKeeperService_DeleteItem_StorageError(t *testing.T) {
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
 	mockStorage.EXPECT().
-		DeleteItem(gomock.Any(), gomock.Any()).
+		DeleteItem(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(errors.New("db error"))
 
 	svc := NewKeeperService(mockStorage)
@@ -268,5 +283,6 @@ func TestKeeperService_DeleteItem_StorageError(t *testing.T) {
 	err := svc.DeleteItem(context.Background(), uuid.New(), uuid.New())
 	if err == nil {
 		t.Error("expected error, got nil")
+		return
 	}
 }

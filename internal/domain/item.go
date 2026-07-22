@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,3 +18,8 @@ type Item struct {
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }
+
+var (
+	// ErrNotFound возвращается хранилищем, когда запись отсутствует.
+	ErrNotFound = errors.New("not found")
+)

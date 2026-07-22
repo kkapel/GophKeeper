@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 
 	uuid "github.com/google/uuid"
-	sqlc "github.com/kkapel/gophkeeper/internal/db/sqlc"
+	domain "github.com/kkapel/gophkeeper/internal/domain"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -43,54 +43,54 @@ func (m *MockItemStorage) EXPECT() *MockItemStorageMockRecorder {
 }
 
 // CreateItem mocks base method.
-func (m *MockItemStorage) CreateItem(ctx context.Context, arg sqlc.CreateItemParams) (sqlc.Item, error) {
+func (m *MockItemStorage) CreateItem(ctx context.Context, item domain.Item) (domain.Item, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateItem", ctx, arg)
-	ret0, _ := ret[0].(sqlc.Item)
+	ret := m.ctrl.Call(m, "CreateItem", ctx, item)
+	ret0, _ := ret[0].(domain.Item)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateItem indicates an expected call of CreateItem.
-func (mr *MockItemStorageMockRecorder) CreateItem(ctx, arg any) *gomock.Call {
+func (mr *MockItemStorageMockRecorder) CreateItem(ctx, item any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateItem", reflect.TypeOf((*MockItemStorage)(nil).CreateItem), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateItem", reflect.TypeOf((*MockItemStorage)(nil).CreateItem), ctx, item)
 }
 
 // DeleteItem mocks base method.
-func (m *MockItemStorage) DeleteItem(ctx context.Context, arg sqlc.DeleteItemParams) error {
+func (m *MockItemStorage) DeleteItem(ctx context.Context, userID, itemID uuid.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteItem", ctx, arg)
+	ret := m.ctrl.Call(m, "DeleteItem", ctx, userID, itemID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteItem indicates an expected call of DeleteItem.
-func (mr *MockItemStorageMockRecorder) DeleteItem(ctx, arg any) *gomock.Call {
+func (mr *MockItemStorageMockRecorder) DeleteItem(ctx, userID, itemID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteItem", reflect.TypeOf((*MockItemStorage)(nil).DeleteItem), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteItem", reflect.TypeOf((*MockItemStorage)(nil).DeleteItem), ctx, userID, itemID)
 }
 
 // GetItem mocks base method.
-func (m *MockItemStorage) GetItem(ctx context.Context, arg sqlc.GetItemParams) (sqlc.Item, error) {
+func (m *MockItemStorage) GetItem(ctx context.Context, userID, itemID uuid.UUID) (domain.Item, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetItem", ctx, arg)
-	ret0, _ := ret[0].(sqlc.Item)
+	ret := m.ctrl.Call(m, "GetItem", ctx, userID, itemID)
+	ret0, _ := ret[0].(domain.Item)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetItem indicates an expected call of GetItem.
-func (mr *MockItemStorageMockRecorder) GetItem(ctx, arg any) *gomock.Call {
+func (mr *MockItemStorageMockRecorder) GetItem(ctx, userID, itemID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetItem", reflect.TypeOf((*MockItemStorage)(nil).GetItem), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetItem", reflect.TypeOf((*MockItemStorage)(nil).GetItem), ctx, userID, itemID)
 }
 
 // ListItems mocks base method.
-func (m *MockItemStorage) ListItems(ctx context.Context, userID uuid.UUID) ([]sqlc.Item, error) {
+func (m *MockItemStorage) ListItems(ctx context.Context, userID uuid.UUID) ([]domain.Item, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListItems", ctx, userID)
-	ret0, _ := ret[0].([]sqlc.Item)
+	ret0, _ := ret[0].([]domain.Item)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -102,16 +102,16 @@ func (mr *MockItemStorageMockRecorder) ListItems(ctx, userID any) *gomock.Call {
 }
 
 // UpdateItem mocks base method.
-func (m *MockItemStorage) UpdateItem(ctx context.Context, arg sqlc.UpdateItemParams) (sqlc.Item, error) {
+func (m *MockItemStorage) UpdateItem(ctx context.Context, item domain.Item) (domain.Item, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateItem", ctx, arg)
-	ret0, _ := ret[0].(sqlc.Item)
+	ret := m.ctrl.Call(m, "UpdateItem", ctx, item)
+	ret0, _ := ret[0].(domain.Item)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateItem indicates an expected call of UpdateItem.
-func (mr *MockItemStorageMockRecorder) UpdateItem(ctx, arg any) *gomock.Call {
+func (mr *MockItemStorageMockRecorder) UpdateItem(ctx, item any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateItem", reflect.TypeOf((*MockItemStorage)(nil).UpdateItem), ctx, arg)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateItem", reflect.TypeOf((*MockItemStorage)(nil).UpdateItem), ctx, item)
 }
