@@ -3,6 +3,7 @@ package client
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 
@@ -47,6 +48,9 @@ func newKeeperClient(address, certPath string) (pb.KeeperServiceClient, *grpc.Cl
 
 // loadClientTLS создаёт TLS-креды клиента, доверяя сертификату сервера.
 func loadClientTLS(certPath string) (credentials.TransportCredentials, error) {
+	if certPath == "" {
+		return nil, errors.New("укажите путь к сертификату сервера через --cert")
+	}
 	pemServerCA, err := os.ReadFile(certPath)
 	if err != nil {
 		return nil, fmt.Errorf("read server cert: %w", err)
