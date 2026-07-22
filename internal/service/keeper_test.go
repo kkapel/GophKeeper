@@ -159,34 +159,11 @@ func TestKeeperService_ListItems_StorageError(t *testing.T) {
 }
 
 // --- UpdateItem ---
-
-func TestKeeperService_UpdateItem_NotFound(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	mockStorage := mocks.NewMockItemStorage(ctrl)
-
-	// проверка существования не находит запись
-	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(domain.Item{}, domain.ErrNotFound)
-
-	svc := NewKeeperService(mockStorage)
-
-	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
-	if !errors.Is(err, ErrItemNotFound) {
-		t.Errorf("expected ErrItemNotFound, got %v", err)
-		return
-	}
-}
-
 func TestKeeperService_UpdateItem_Success(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// запись существует
-	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(domain.Item{ID: uuid.New()}, nil)
-	// обновление проходит
+	// обновление сразу проходит — уточняющий GetItem НЕ вызывается
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
 		Return(domain.Item{ID: uuid.New(), Version: 3}, nil)
@@ -203,18 +180,40 @@ func TestKeeperService_UpdateItem_Success(t *testing.T) {
 	}
 }
 
+func TestKeeperService_UpdateItem_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStorage := mocks.NewMockItemStorage(ctrl)
+
+	// обновление не затронуло строк
+	mockStorage.EXPECT().
+		UpdateItem(gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, domain.ErrNotFound)
+	// уточнение: записи действительно нет
+	mockStorage.EXPECT().
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{}, domain.ErrNotFound)
+
+	svc := NewKeeperService(mockStorage)
+
+	_, err := svc.UpdateItem(context.Background(), uuid.New(), uuid.New(), []byte("x"), "", 1)
+	if !errors.Is(err, ErrItemNotFound) {
+		t.Errorf("expected ErrItemNotFound, got %v", err)
+		return
+	}
+}
+
 func TestKeeperService_UpdateItem_VersionConflict(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// запись существует
-	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(domain.Item{ID: uuid.New()}, nil)
-	// но обновление не затронуло строк — версия разошлась
+	// обновление не затронуло строк
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
 		Return(domain.Item{}, domain.ErrNotFound)
+	// уточнение: запись существует → значит версия разошлась
+	mockStorage.EXPECT().
+		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.Item{ID: uuid.New(), Version: 5}, nil)
 
 	svc := NewKeeperService(mockStorage)
 
@@ -229,11 +228,7 @@ func TestKeeperService_UpdateItem_StorageError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mockStorage := mocks.NewMockItemStorage(ctrl)
 
-	// запись существует
-	mockStorage.EXPECT().
-		GetItem(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(domain.Item{ID: uuid.New()}, nil)
-	// обновление падает реальной ошибкой
+	// реальный сбой — уточнение НЕ должно вызываться
 	mockStorage.EXPECT().
 		UpdateItem(gomock.Any(), gomock.Any()).
 		Return(domain.Item{}, errors.New("db error"))

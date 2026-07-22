@@ -91,17 +91,7 @@ func (s *KeeperService) ListItems(ctx context.Context, userID uuid.UUID) ([]doma
 // UpdateItem обновляет запись с проверкой версии.
 func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID, payload []byte, metadata string, version int64) (domain.Item, error) {
 
-	// Смотрим, есть ли запись
-	_, err := s.storage.GetItem(ctx, userID, itemID)
-
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return domain.Item{}, ErrItemNotFound // записи нет
-		}
-		return domain.Item{}, fmt.Errorf("UpdateItem: %w", err)
-	}
-
-	// Запись есть — обновляем с проверкой версии
+	// делаем update
 	item, err := s.storage.UpdateItem(ctx, domain.Item{
 		ID:               itemID,
 		UserID:           userID,
@@ -110,15 +100,25 @@ func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID
 		Version:          version,
 	})
 
-	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			// версия разошлась
-			return domain.Item{}, ErrVersionConflict
-		}
+	// Если ошибки нет, возвращаем item
+	if err == nil {
+		return item, nil
+	}
+
+	if !errors.Is(err, domain.ErrNotFound) {
 		return domain.Item{}, fmt.Errorf("UpdateItem: %w", err)
 	}
 
-	return item, nil
+	// либо записи нет, либо версия разошлась.
+	// делаем дополнительный get-запрос
+	if _, getErr := s.storage.GetItem(ctx, userID, itemID); getErr != nil {
+		if errors.Is(getErr, domain.ErrNotFound) {
+			return domain.Item{}, ErrItemNotFound
+		}
+		return domain.Item{}, fmt.Errorf("UpdateItem: %w", getErr)
+	}
+
+	return domain.Item{}, ErrVersionConflict
 
 }
 
