@@ -29,7 +29,7 @@ func itemTypeFromString(s string) (pb.ItemType, error) {
 }
 
 // newAddCmd добавляет новую запись приватных данных.
-func newAddCmd() *cobra.Command {
+func newAddCmd(cfg *clientConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "add",
 		Short: "Добавить новую запись",
@@ -67,7 +67,7 @@ func newAddCmd() *cobra.Command {
 			}
 
 			// Подключение к серверу
-			client, conn, err := newKeeperClient(serverAddress, certPath)
+			client, conn, err := newKeeperClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("подключение к серверу: %w", err)
 			}

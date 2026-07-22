@@ -10,7 +10,7 @@ import (
 )
 
 // newLoginCmd реализует команду авторизации пользователя
-func newLoginCmd() *cobra.Command {
+func newLoginCmd(cfg *clientConfig) *cobra.Command {
 	loginCmd := &cobra.Command{
 		Use:   "login",
 		Short: "Войти в систему",
@@ -33,7 +33,7 @@ func newLoginCmd() *cobra.Command {
 				return fmt.Errorf("укажите пароль через --password")
 			}
 
-			auth, conn, err := newAuthClient(serverAddress, certPath)
+			auth, conn, err := newAuthClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("не удалось подключиться к серверу: %w", err)
 			}

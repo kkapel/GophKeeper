@@ -13,7 +13,7 @@ import (
 )
 
 // newlistCmd выводит все записи пользователя.
-func newListCmd() *cobra.Command {
+func newListCmd(cfg *clientConfig) *cobra.Command {
 	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "Показать все записи",
@@ -23,7 +23,7 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("не удалось прочитать токен (выполните login): %w", err)
 			}
 
-			client, conn, err := newKeeperClient(serverAddress, certPath)
+			client, conn, err := newKeeperClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("подключение к серверу: %w", err)
 			}

@@ -24,7 +24,7 @@ func readPassword(prompt string) (string, error) {
 }
 
 // newRegisterCmd реализует команду регистрации нового пользователя.
-func newRegisterCmd() *cobra.Command {
+func newRegisterCmd(cfg *clientConfig) *cobra.Command {
 	registerCmd := &cobra.Command{
 		Use:   "register",
 		Short: "Зарегистрировать нового пользователя",
@@ -50,7 +50,7 @@ func newRegisterCmd() *cobra.Command {
 			}
 
 			// Подключаемся к gRPC-серверу
-			authClient, conn, err := newAuthClient(serverAddress, certPath)
+			authClient, conn, err := newAuthClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("не удалось подключиться к серверу: %v", err)
 			}

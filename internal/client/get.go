@@ -13,7 +13,7 @@ import (
 )
 
 // newgetCmd получает одну запись по id.
-func newGetCmd() *cobra.Command {
+func newGetCmd(cfg *clientConfig) *cobra.Command {
 
 	getCmd := &cobra.Command{
 		Use:   "get",
@@ -32,7 +32,7 @@ func newGetCmd() *cobra.Command {
 				return fmt.Errorf("не удалось прочитать токен (выполните login): %w", err)
 			}
 
-			client, conn, err := newKeeperClient(serverAddress, certPath)
+			client, conn, err := newKeeperClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("подключение к серверу: %w", err)
 			}

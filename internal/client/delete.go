@@ -13,7 +13,7 @@ import (
 )
 
 // newDeleteCmd удаляет запись по id.
-func newDeleteCmd() *cobra.Command {
+func newDeleteCmd(cfg *clientConfig) *cobra.Command {
 	deleteCmd := &cobra.Command{
 		Use:   "delete",
 		Short: "Удалить запись по id",
@@ -31,7 +31,7 @@ func newDeleteCmd() *cobra.Command {
 				return fmt.Errorf("не удалось прочитать токен (выполните login): %w", err)
 			}
 
-			client, conn, err := newKeeperClient(serverAddress, certPath)
+			client, conn, err := newKeeperClient(cfg.serverAddress, cfg.certPath)
 			if err != nil {
 				return fmt.Errorf("подключение к серверу: %w", err)
 			}
