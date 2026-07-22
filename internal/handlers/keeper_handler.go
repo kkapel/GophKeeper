@@ -35,9 +35,9 @@ type KeeperHandler struct {
 
 // GetItem возвращает запись пользователя по id.
 func (h *KeeperHandler) GetItem(ctx context.Context, req *pb.GetItemRequest) (*pb.GetItemResponse, error) {
-	userID, ok := auth.UserIDFromContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "no user in context")
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	itemID, err := uuid.Parse(req.GetId())
@@ -61,10 +61,9 @@ func (h *KeeperHandler) GetItem(ctx context.Context, req *pb.GetItemRequest) (*p
 // CreateItem обрабатывает gRPC-запрос на создание нового элемента в хранилище.
 func (h *KeeperHandler) CreateItem(ctx context.Context, req *pb.CreateItemRequest) (*pb.CreateItemResponse, error) {
 
-	userID, ok := auth.UserIDFromContext(ctx)
-
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "no user in context")
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	item, err := h.service.CreateItem(
@@ -87,9 +86,9 @@ func (h *KeeperHandler) CreateItem(ctx context.Context, req *pb.CreateItemReques
 
 // ListItems возвращает все записи пользователя.
 func (h *KeeperHandler) ListItems(ctx context.Context, req *pb.ListItemsRequest) (*pb.ListItemsResponse, error) {
-	userID, ok := auth.UserIDFromContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "no user in context")
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	items, err := h.service.ListItems(ctx, userID)
@@ -111,9 +110,9 @@ func (h *KeeperHandler) ListItems(ctx context.Context, req *pb.ListItemsRequest)
 
 // UpdateItem обновляет запись.
 func (h *KeeperHandler) UpdateItem(ctx context.Context, req *pb.UpdateItemRequest) (*pb.UpdateItemResponse, error) {
-	userID, ok := auth.UserIDFromContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "no user in context")
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	itemID, err := uuid.Parse(req.GetId())
@@ -140,9 +139,9 @@ func (h *KeeperHandler) UpdateItem(ctx context.Context, req *pb.UpdateItemReques
 
 // DeleteItem удаляет запись (мягко).
 func (h *KeeperHandler) DeleteItem(ctx context.Context, req *pb.DeleteItemRequest) (*pb.DeleteItemResponse, error) {
-	userID, ok := auth.UserIDFromContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "no user in context")
+	userID, err := userIDFromContext(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	itemID, err := uuid.Parse(req.GetId())
@@ -174,4 +173,17 @@ func itemToProto(item domain.Item) *pb.Item {
 		Metadata:         &item.Metadata,
 		Version:          &item.Version,
 	}.Build()
+}
+
+// userIDFromContext извлекает идентификатор пользователя из контекста
+// Возвращает готовую gRPC-ошибку, если идентификатор отсутствует или некорректен.
+func userIDFromContext(ctx context.Context) (uuid.UUID, error) {
+	userID, err := auth.UserIDFromContext(ctx)
+	if err != nil {
+		if errors.Is(err, auth.ErrInvalidUserID) {
+			return uuid.Nil, status.Error(codes.Internal, "invalid user context")
+		}
+		return uuid.Nil, status.Error(codes.Unauthenticated, "no user in context")
+	}
+	return userID, nil
 }
