@@ -63,6 +63,7 @@ func TestAuthService_Register_HashesPassword(t *testing.T) {
 	err = bcrypt.CompareHashAndPassword([]byte(mock.createdParams.PasswordHash), []byte(password))
 	if err != nil {
 		t.Errorf("stored hash does not match password: %v", err)
+		return
 	}
 }
 
@@ -75,6 +76,7 @@ func TestAuthService_Register_LoginTaken(t *testing.T) {
 	_, err := svc.Register(context.Background(), "user1", "secret123")
 	if !errors.Is(err, ErrLoginTaken) {
 		t.Errorf("expected ErrLoginTaken, got %v", err)
+		return
 	}
 }
 
@@ -118,6 +120,7 @@ func TestAuthService_Login_WrongPassword(t *testing.T) {
 	_, err := svc.Login(context.Background(), "user1", "wrong-password")
 	if !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("expected ErrInvalidCredentials, got %v", err)
+		return
 	}
 }
 
@@ -130,5 +133,6 @@ func TestAuthService_Login_UserNotFound(t *testing.T) {
 	_, err := svc.Login(context.Background(), "nobody", "secret123")
 	if !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("expected ErrInvalidCredentials, got %v", err)
+		return
 	}
 }

@@ -34,6 +34,7 @@ func TestKeeperHandler_CreateItem_NoUserID(t *testing.T) {
 	_, err := h.CreateItem(context.Background(), req)
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("expected Unauthenticated, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -71,6 +72,7 @@ func TestKeeperHandler_CreateItem_ServiceError(t *testing.T) {
 	_, err := h.CreateItem(ctxWithUser(), req)
 	if status.Code(err) != codes.Internal {
 		t.Errorf("expected Internal, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -87,6 +89,7 @@ func TestKeeperHandler_GetItem_NoUserID(t *testing.T) {
 	_, err := h.GetItem(context.Background(), req)
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("expected Unauthenticated, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -101,6 +104,7 @@ func TestKeeperHandler_GetItem_InvalidID(t *testing.T) {
 	_, err := h.GetItem(ctxWithUser(), req)
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("expected InvalidArgument, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -119,6 +123,7 @@ func TestKeeperHandler_GetItem_NotFound(t *testing.T) {
 	_, err := h.GetItem(ctxWithUser(), req)
 	if status.Code(err) != codes.NotFound {
 		t.Errorf("expected NotFound, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -155,6 +160,7 @@ func TestKeeperHandler_ListItems_NoUserID(t *testing.T) {
 	_, err := h.ListItems(context.Background(), req)
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("expected Unauthenticated, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -191,6 +197,7 @@ func TestKeeperHandler_UpdateItem_NoUserID(t *testing.T) {
 	_, err := h.UpdateItem(context.Background(), req)
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("expected Unauthenticated, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -205,6 +212,7 @@ func TestKeeperHandler_UpdateItem_InvalidID(t *testing.T) {
 	_, err := h.UpdateItem(ctxWithUser(), req)
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("expected InvalidArgument, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -223,6 +231,7 @@ func TestKeeperHandler_UpdateItem_NotFound(t *testing.T) {
 	_, err := h.UpdateItem(ctxWithUser(), req)
 	if status.Code(err) != codes.NotFound {
 		t.Errorf("expected NotFound, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -241,6 +250,7 @@ func TestKeeperHandler_UpdateItem_VersionConflict(t *testing.T) {
 	_, err := h.UpdateItem(ctxWithUser(), req)
 	if status.Code(err) != codes.Aborted {
 		t.Errorf("expected Aborted, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -278,6 +288,7 @@ func TestKeeperHandler_DeleteItem_NoUserID(t *testing.T) {
 	_, err := h.DeleteItem(context.Background(), req)
 	if status.Code(err) != codes.Unauthenticated {
 		t.Errorf("expected Unauthenticated, got %v", status.Code(err))
+		return
 	}
 }
 
@@ -296,6 +307,7 @@ func TestKeeperHandler_DeleteItem_Success(t *testing.T) {
 	_, err := h.DeleteItem(ctxWithUser(), req)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+		return
 	}
 }
 
