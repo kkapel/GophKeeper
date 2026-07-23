@@ -122,11 +122,14 @@ func (s *KeeperService) UpdateItem(ctx context.Context, userID, itemID uuid.UUID
 
 }
 
-// DeleteItem удаляет запись (проставляет флаг).
+// DeleteItem выполняет мягкое удаление записи пользователя.
 func (s *KeeperService) DeleteItem(ctx context.Context, userID, id uuid.UUID) error {
 	err := s.storage.DeleteItem(ctx, userID, id)
 
 	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return ErrItemNotFound
+		}
 		return fmt.Errorf("failed to delete item: %w", err)
 	}
 

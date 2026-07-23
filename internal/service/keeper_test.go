@@ -281,3 +281,20 @@ func TestKeeperService_DeleteItem_StorageError(t *testing.T) {
 		return
 	}
 }
+
+func TestKeeperService_DeleteItem_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockStorage := mocks.NewMockItemStorage(ctrl)
+
+	mockStorage.EXPECT().
+		DeleteItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(domain.ErrNotFound)
+
+	svc := NewKeeperService(mockStorage)
+
+	err := svc.DeleteItem(context.Background(), uuid.New(), uuid.New())
+	if !errors.Is(err, ErrItemNotFound) {
+		t.Errorf("expected ErrItemNotFound, got %v", err)
+		return
+	}
+}

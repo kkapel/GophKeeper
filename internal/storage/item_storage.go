@@ -18,7 +18,7 @@ type Queries interface {
 	GetItem(ctx context.Context, arg sqlc.GetItemParams) (sqlc.Item, error)
 	ListItems(ctx context.Context, userID uuid.UUID) ([]sqlc.Item, error)
 	UpdateItem(ctx context.Context, arg sqlc.UpdateItemParams) (sqlc.Item, error)
-	DeleteItem(ctx context.Context, arg sqlc.DeleteItemParams) error
+	DeleteItem(ctx context.Context, arg sqlc.DeleteItemParams) (int64, error)
 }
 
 // ItemStorage реализует хранение приватных данных поверх PostgreSQL.
@@ -92,12 +92,17 @@ func (s *ItemStorage) UpdateItem(ctx context.Context, item domain.Item) (domain.
 }
 
 // DeleteItem выполняет мягкое удаление записи.
+// Возвращает domain.ErrNotFound, если запись отсутствует или принадлежит другому пользователю.
 func (s *ItemStorage) DeleteItem(ctx context.Context, userID, itemID uuid.UUID) error {
-	if err := s.queries.DeleteItem(ctx, sqlc.DeleteItemParams{
+	rows, err := s.queries.DeleteItem(ctx, sqlc.DeleteItemParams{
 		ID:     itemID,
 		UserID: userID,
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("delete item: %w", err)
+	}
+	if rows == 0 {
+		return domain.ErrNotFound
 	}
 	return nil
 }

@@ -298,3 +298,22 @@ func TestKeeperHandler_DeleteItem_Success(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
+
+func TestKeeperHandler_DeleteItem_NotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	mockSvc := mocks.NewMockKeepService(ctrl)
+
+	mockSvc.EXPECT().
+		DeleteItem(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(service.ErrItemNotFound)
+
+	h := NewKeeperHandler(mockSvc)
+	id := uuid.New().String()
+	req := pb.DeleteItemRequest_builder{Id: &id}.Build()
+
+	_, err := h.DeleteItem(ctxWithUser(), req)
+	if status.Code(err) != codes.NotFound {
+		t.Errorf("expected NotFound, got %v", status.Code(err))
+		return
+	}
+}

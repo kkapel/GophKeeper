@@ -16,7 +16,7 @@ type Querier interface {
 	// CreateUser создаёт нового пользователя и возвращает его данные без хеша пароля.
 	CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error)
 	// DeleteItem выполняет мягкое удаление записи.
-	DeleteItem(ctx context.Context, arg DeleteItemParams) error
+	DeleteItem(ctx context.Context, arg DeleteItemParams) (int64, error)
 	// GetItem возвращает запись пользователя по id, исключая мягко удалённые.
 	GetItem(ctx context.Context, arg GetItemParams) (Item, error)
 	// GetUserByLogin возвращает пользователя по логину вместе с password_hash для сверки при входе.

@@ -45,10 +45,14 @@ func newDeleteCmd(cfg *clientConfig) *cobra.Command {
 				Id: &id,
 			}.Build())
 			if err != nil {
-				if status.Code(err) == codes.Unauthenticated {
+				switch status.Code(err) {
+				case codes.Unauthenticated:
 					return errors.New("не авторизованы — выполните login заново")
+				case codes.NotFound:
+					return errors.New("запись не найдена")
+				default:
+					return fmt.Errorf("не удалось удалить запись: %w", err)
 				}
-				return fmt.Errorf("не удалось удалить запись: %w", err)
 			}
 
 			fmt.Println("Запись удалена.")

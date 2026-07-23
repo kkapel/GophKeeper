@@ -47,10 +47,10 @@ func (q *Queries) CreateItem(ctx context.Context, arg CreateItemParams) (Item, e
 	return i, err
 }
 
-const deleteItem = `-- name: DeleteItem :exec
+const deleteItem = `-- name: DeleteItem :execrows
 UPDATE items
 SET deleted = TRUE, version = version + 1, updated_at = now()
-WHERE id = $1 AND user_id = $2
+WHERE id = $1 AND user_id = $2 AND NOT deleted
 `
 
 type DeleteItemParams struct {
@@ -59,10 +59,12 @@ type DeleteItemParams struct {
 }
 
 // DeleteItem выполняет мягкое удаление записи.
-// Выполняется update c флагом удаления true
-func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) error {
-	_, err := q.db.ExecContext(ctx, deleteItem, arg.ID, arg.UserID)
-	return err
+func (q *Queries) DeleteItem(ctx context.Context, arg DeleteItemParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteItem, arg.ID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const getItem = `-- name: GetItem :one

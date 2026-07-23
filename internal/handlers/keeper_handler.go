@@ -150,6 +150,9 @@ func (h *KeeperHandler) DeleteItem(ctx context.Context, req *pb.DeleteItemReques
 	}
 
 	if err := h.service.DeleteItem(ctx, userID, itemID); err != nil {
+		if errors.Is(err, service.ErrItemNotFound) {
+			return nil, status.Error(codes.NotFound, "item not found")
+		}
 		return nil, status.Error(codes.Internal, "failed to delete item")
 	}
 

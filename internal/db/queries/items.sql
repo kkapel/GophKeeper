@@ -26,8 +26,8 @@ SET encrypted_payload = $3,
 WHERE id = $1 AND user_id = $2 AND version = $5 AND NOT deleted
 RETURNING *;
 
--- name: DeleteItem :exec
+-- name: DeleteItem :execrows
 -- DeleteItem выполняет мягкое удаление записи.
 UPDATE items
 SET deleted = TRUE, version = version + 1, updated_at = now()
-WHERE id = $1 AND user_id = $2;
+WHERE id = $1 AND user_id = $2 AND NOT deleted;
