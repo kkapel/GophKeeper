@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//go:generate mockgen -source=keeper_handler.go -destination=mocks/mock_keep_service.go -package=mocks KeepService
+//go:generate mockgen -source=keeper_handler.go -destination=mocks/mock_keep_service.gen.go -package=mocks KeepService
 
 // KeepService описывает бизнес-логику работы с приватными данными,
 // необходимую хендлеру.

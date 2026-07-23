@@ -17,7 +17,7 @@ var (
 	ErrItemNotFound = errors.New("item not found")
 )
 
-//go:generate mockgen -source=keeper.go -destination=mocks/mock_item_storage.go -package=mocks ItemStorage
+//go:generate mockgen -source=keeper.go -destination=mocks/mock_item_storage.gen.go -package=mocks ItemStorage
 
 // ItemStorage описывает операции с приватными данными,
 // необходимые сервису для работы с хранилищем.

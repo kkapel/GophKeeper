@@ -9,9 +9,9 @@ linters:
         - name: exported
   exclusions:
     rules:
-      - path: mocks/
+      - path: \.gen\.go$
         linters:
           - revive
-      - path: \.pb\.go
+      - path: \.pb\.go$
         linters:
           - revive
