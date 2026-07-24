@@ -1,3 +1,4 @@
+// Package config загружает конфигурацию сервера из переменных окружения.
 package config
 
 import (
@@ -7,13 +8,18 @@ import (
 	"github.com/spf13/viper"
 )
 
+// Config содержит параметры запуска сервера GophKeeper.
 type Config struct {
 	GRPCAddress string
 	LoggerLevel string
 	DataBaseURL string
 	JWTSecret   string
+	TLSCertPath string
+	TLSKeyPath  string
 }
 
+// LoadConfig читает конфигурацию из переменных окружения (префикс GOPHKEEPER_)
+// и проверяет наличие обязательных параметров.
 func LoadConfig() (*Config, error) {
 	v := viper.New()
 
@@ -33,6 +39,8 @@ func LoadConfig() (*Config, error) {
 		LoggerLevel: v.GetString("logger_level"),
 		DataBaseURL: v.GetString("database_url"),
 		JWTSecret:   v.GetString("jwt_secret"),
+		TLSCertPath: v.GetString("tls_cert_path"),
+		TLSKeyPath:  v.GetString("tls_key_path"),
 	}
 
 	if err := config.validate(); err != nil {
@@ -49,6 +57,14 @@ func (c *Config) validate() error {
 	}
 	if c.JWTSecret == "" {
 		return fmt.Errorf("JWT_SECRET is required")
+	}
+
+	if c.TLSCertPath == "" {
+		return fmt.Errorf("TLS_CERT_PATH is required")
+	}
+
+	if c.TLSKeyPath == "" {
+		return fmt.Errorf("TLS_KEY_PATH is required")
 	}
 	return nil
 }

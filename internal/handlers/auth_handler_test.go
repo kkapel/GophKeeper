@@ -87,6 +87,7 @@ func TestAuthHandler_Register(t *testing.T) {
 			// проверяем gRPC-код ошибки
 			if status.Code(err) != tt.wantCode {
 				t.Errorf("got code %v, want %v (err: %v)", status.Code(err), tt.wantCode, err)
+				return
 			}
 
 			// при успехе проверяем токен в ответе
@@ -96,6 +97,7 @@ func TestAuthHandler_Register(t *testing.T) {
 				}
 				if resp.GetAccessToken() != tt.wantToken {
 					t.Errorf("got token %q, want %q", resp.GetAccessToken(), tt.wantToken)
+					return
 				}
 			}
 		})
@@ -161,6 +163,7 @@ func TestAuthHandler_Login(t *testing.T) {
 
 			if status.Code(err) != tt.wantCode {
 				t.Errorf("got code %v, want %v (err: %v)", status.Code(err), tt.wantCode, err)
+				return
 			}
 
 			if tt.wantCode == codes.OK {
@@ -169,6 +172,7 @@ func TestAuthHandler_Login(t *testing.T) {
 				}
 				if resp.GetAccessToken() != tt.wantToken {
 					t.Errorf("got token %q, want %q", resp.GetAccessToken(), tt.wantToken)
+					return
 				}
 			}
 		})

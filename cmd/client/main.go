@@ -18,7 +18,8 @@ var (
 
 func main() {
 	client.SetBuildInfo(buildVersion, buildDate) // прокидываем инфу о сборке
-	if err := client.Execute(); err != nil {
+	root := client.NewRootCmd()
+	if err := root.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }

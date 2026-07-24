@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -15,12 +16,15 @@ import (
 	"github.com/kkapel/gophkeeper/internal/handlers"
 	"github.com/kkapel/gophkeeper/internal/logger"
 	"github.com/kkapel/gophkeeper/internal/service"
+	"github.com/kkapel/gophkeeper/internal/storage"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
 	pb "github.com/kkapel/gophkeeper/internal/proto/gophkeeper/v1"
 )
 
+// Run запускает grpc-сервер и инциализирует конфиги и подключения
 func Run() error {
 	// Инициализация конфигурации
 	cfg, err := config.LoadConfig()
@@ -48,13 +52,16 @@ func Run() error {
 
 	// Инициализация сервисов
 	queries := sqlc.New(db.GetSqlDb())
+	itemStorage := storage.NewItemStorage(queries)
 	svc := service.NewAuthService(queries, cfg.JWTSecret)
+	keepSvc := service.NewKeeperService(itemStorage)
 
 	// Инициализация хендлеров gRPC-сервиса
 	authHandler := handlers.NewAuthHandler(svc)
+	keepHandler := handlers.NewKeeperHandler(keepSvc)
 
 	// Запуск gRPC-сервера
-	srv, err := startGRPCServer(cfg, authHandler)
+	srv, err := startGRPCServer(cfg, authHandler, keepHandler)
 	if err != nil {
 		return err
 	}
@@ -71,6 +78,7 @@ func Run() error {
 	return nil
 }
 
+// LoggingInterceptor добавляет логирование в поступающие вызовы
 func LoggingInterceptor(
 	ctx context.Context,
 	req any,
@@ -95,7 +103,7 @@ func LoggingInterceptor(
 }
 
 // Функция для запуска grpc-сервера
-func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*grpc.Server, error) {
+func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler, keepHandler *handlers.KeeperHandler) (*grpc.Server, error) {
 	// 1. Открываем listener на нужном порту
 	listener, err := net.Listen("tcp", cfg.GRPCAddress)
 	if err != nil {
@@ -103,21 +111,28 @@ func startGRPCServer(cfg *config.Config, authHandler *handlers.AuthHandler) (*gr
 	}
 
 	// Загружаем TLS-сертификаты
-	// to do : сгенерировать сертификаты
-	// пути сделать настраиваемыми через конфиг
-	//creds, err := credentials.NewServerTLSFromFile("cert.pem", "key.pem")
-	//if err != nil {
-	//	return nil, err
-	//	}
+	creds, err := credentials.NewServerTLSFromFile(cfg.TLSCertPath, cfg.TLSKeyPath)
+	if err != nil {
+		return nil, fmt.Errorf("load TLS credentials: %w", err)
+	}
+
+	publicMethods := map[string]bool{
+		"/gophkeeper.v1.AuthService/Register": true,
+		"/gophkeeper.v1.AuthService/Login":    true,
+	}
+
+	authInterceptor := NewAuthInterceptor(cfg.JWTSecret, publicMethods)
 
 	// 2. Создаём экземпляр gRPC-сервера
 	grpcServer := grpc.NewServer(
-		grpc.ChainUnaryInterceptor(LoggingInterceptor), // добавляем логирование
-		//grpc.Creds(creds), // добавляем TLS
+		grpc.Creds(creds), // добавляем TLS
+		grpc.ChainUnaryInterceptor(
+			LoggingInterceptor, authInterceptor.Unary), // добавляем логирование и аутентификацию
 	)
 
 	// 3. Регистрируем его в gRPC-сервере
 	pb.RegisterAuthServiceServer(grpcServer, authHandler)
+	pb.RegisterKeeperServiceServer(grpcServer, keepHandler)
 
 	// 4. Запускаем в горутине, чтобы не блокировать main
 	go func() {
